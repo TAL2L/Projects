@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <time.h>
 int player1(int maxCardsPlayer1 ); // prototype for player1 with parameter maxCardsPlayer1 that returns the max of his cards
 int player2(int maxCardsPlayer2); // prototype for player2 with parameter maxCardsPlayer2 that returns the max of his cards
 int player3(int maxCardsPlayer3); // prototype for player3 with parameter maxCardsPlayer3 that returns the max of his cards
