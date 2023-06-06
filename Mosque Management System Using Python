@@ -1,0 +1,204 @@
+import difflib
+import webbrowser
+from tkinter import *
+from sqlite3 import *
+from tkinter import messagebox
+from webbrowser import *
+from difflib import *
+import folium
+
+class Mosque:
+    def __init__(self):
+        self.con = connect('M_Mangment.db')  # Connect to DB..
+        self.cursor = self.con.cursor()  # Cursor to excute in DB..
+        self.cursor.execute("""CREATE TABLE IF NOT EXISTS mosques (
+            id int,
+            name text,
+            type text,
+            address text,
+            coordinates text,
+            imam_name text
+        )""")
+
+    def Display(self):
+        listBox.delete(0, END)
+        self.cursor.execute('select * from mosques')
+
+        while True:
+            try:
+                ot = self.cursor.fetchone()
+                listBox.insert(END, 'ID: ' +str(ot[0]))
+                listBox.insert(END, 'Name: ' + str(ot[1]))
+                listBox.insert(END, 'Type: ' + str(ot[2]))
+                listBox.insert(END, 'Adress: ' + str(ot[3]))
+                listBox.insert(END, 'Coordinates: ' + str(ot[4]))
+                listBox.insert(END, 'Imam_name: ' + str(ot[5]))
+                listBox.insert(END, '                       ')
+            except:
+                break
+
+    def Insert(self, id, name2, TYPE, address, coord, imamName):
+        if ((id == '') or (name2 == '') or (address == '') or (coord == '') or (imamName == '')):
+            messagebox.showwarning('Warning', ' Check fields!')
+        else:
+            try:
+                id = int(entryID.get())
+                self.cursor.execute("INSERT INTO mosques  VALUES (?, ?, ? , ?, ?, ?)",
+                                    (id, name2, TYPE, address, coord, imamName))
+                listBox.delete(0, END)
+                self.con.commit()
+            except:
+                messagebox.showwarning('Warning', 'ID must be an Integer')
+
+    def delete(self, id2):
+        if id2 == '':
+            messagebox.showwarning('Warning', 'Empty ID Field')
+        else:
+            try:
+                id2 = int(entryID.get())
+                self.cursor.execute("DELETE FROM mosques where id = ?", (id2,) )
+                self.con.commit()
+                listBox.delete(0, END)
+            except:
+                messagebox.showwarning('Warning', 'ID must be an Integer')
+
+    def search(self, NAME):
+        global y
+        global loc
+        self.cursor.execute("select coordinates from mosques where name = ?", (NAME,))
+        x = self.cursor.fetchone()[0]
+        temp = str(x)
+        loc = temp.split(', ')
+        y = NAME
+        try:
+            listBox.delete(0, END)
+            z = str(NAME)
+            if NAME == "":
+                messagebox.showwarning('Warning', 'Empty Name field / Name type must be a string')
+            else:
+                # this code to exatrct the name from the database to check wtih difflib
+                listt = []
+                self.cursor.execute("select name from mosques")
+                counter = 0
+                while True:
+                    try:
+                        x = self.cursor.fetchone()
+                        listt.append(x[++counter])
+                    except:
+                        break
+                # check if name not exist in db
+                m =''
+                if NAME not in listt:
+                    m = difflib.get_close_matches(NAME, listt)
+                    if  not m: # if its empty list that means no matching
+                        messagebox.showerror('Error', 'Name does not exist')
+                    else:
+                        ans = messagebox.askyesno('Wrong entry', f'Do you mean {m[0]} ?')
+                else:
+                    try:
+                        self.cursor.execute("select * from mosques where name = ?", (NAME,))
+                        ot = self.cursor.fetchone()
+                        listBox.insert(END, 'ID: ' +str(ot[0]))
+                        listBox.insert(END, 'Name: ' + str(ot[1]))
+                        listBox.insert(END, 'Type: ' + str(ot[2]))
+                        listBox.insert(END, 'Adress: ' + str(ot[3]))
+                        listBox.insert(END, 'Coordinates: ' + str(ot[4]))
+                        listBox.insert(END, 'Imam_name: ' + str(ot[5]))
+                        listBox.insert(END, '                       ')
+                    except:
+                        messagebox.showerror('Error', 'Name does not exist')
+        except:
+            messagebox.showwarning('Warning', 'Name type must be a string')
+
+    def update(self, newName):
+        self.cursor.execute("UPDATE mosques set imam_name = ? where name = ?", (newName, y))
+        listBox.delete(0, END)
+        self.con.commit()
+
+    def display_map(self):
+
+        #This section of code to store the locatin locally in html file..
+
+        mp = folium.Map(location=loc, zoom_start=18, width=1000, height=1000)
+        mp.save('location.html')
+
+        # This section of code to open it in a web browser
+        webbrowser.open("https://www.google.com/maps/place/"+loc[0]+loc[1])
+
+
+    def __del__(self):
+        pass
+
+
+
+
+obj = Mosque()
+top = Tk()
+
+top.title('Mosques Mangment System')
+top.geometry('900x240')
+
+labelID = Label(top, text='ID', font='Arial, 12')
+labelID.place(x=40, y=21)
+
+entryID = Entry(top, width=13, font='Arial, 12')
+entryID.place(x=90, y=20)
+
+labelName = Label(top, text="Name", font='Arial, 12')
+labelName.place(x=250, y=19)
+
+entryName = Entry(top, width=13, font='Arial, 12')
+entryName.place(x=330, y=20)
+
+labelTyple = Label(top, text="Type", font='Arial, 12')
+labelTyple.place(x=30, y=65)
+
+chosed = StringVar()
+chosed.set('Small_Mosuqe')
+optionMenu = OptionMenu(top, chosed, "Small_Mosuqe", "Medium_Mosque", "Big_Mosque")
+optionMenu.place(x=90, y=65)
+
+labelAddress = Label(top, text='Address', font='Arial, 12')
+labelAddress.place(x=240, y=67)
+
+entryAddress = Entry(top, width=13, font='Arial, 12')
+entryAddress.place(x=330, y=65)
+
+labelCoordinates = Label(top, text="Coordinates", font='Arial, 12')
+labelCoordinates.place(x=0, y=115)
+
+entryCoordinates = Entry(top, width=13, font='Arial, 12')
+entryCoordinates.place(x=90, y=115)
+
+labelImam = Label(top, text="Imam_name", font='Arial, 12')
+labelImam.place(x=230, y=115)
+
+entryImam = Entry(top, width=13, font='Arial, 12')
+entryImam.place(x=330, y=115)
+
+displayBtn = Button(top, width=10, height=1, text="Display All", font='Arial, 12', command= obj.Display)
+displayBtn.place(x=90, y=160)
+
+addEntryBtn = Button(top, width=10, height=1, text="Add Entry", font='Arial, 12',
+                     command=lambda: obj.Insert(entryID.get(), entryName.get(), chosed.get(), entryAddress.get(),
+                                                entryCoordinates.get(), entryImam.get()))
+addEntryBtn.place(x=90, y=200)
+
+searchBtn = Button(top, width=13, height=1, text="Search By Name", font='Arial, 12', command= lambda : obj.search(entryName.get()))
+searchBtn.place(x=200, y=160)
+
+deleteBtn = Button(top, width=13, height=1, text="Delete entry", font='Arial, 12',
+                   command=lambda: obj.delete(entryID.get()))
+deleteBtn.place(x=200, y=200)
+
+updateBtn = Button(top, width=12, height=1, text="Update Entry", font='Arial, 12', command= lambda: obj.update(entryImam.get()))
+updateBtn.place(x=335, y=160)
+
+displayMapBtn = Button(top, width=12, height=1, text="Display on Map", font='Arial, 12', command= obj.display_map)
+displayMapBtn.place(x=335, y=200)
+
+
+listBox = Listbox(top, font='Arial, 10', width=120, height=12)
+listBox.place(x=470, y=0)
+obj.__del__()
+top.mainloop()
